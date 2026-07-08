@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Lock, Download, CheckCircle2, BrainCircuit } from 'lucide-react';
+import { Check, Lock, Download, CheckCircle2, BrainCircuit, Palette } from 'lucide-react';
 
 interface ProgressIndicatorProps {
   current: number;
@@ -9,9 +9,10 @@ interface ProgressIndicatorProps {
 
 const stepIcons = [
   Lock,         // 1. Welcome
-  BrainCircuit, // 2. Setup Overview
-  Download,     // 3. Download Progress
-  // Step 4 (Permissions) doesn't need icon - auto-skipped on non-macOS
+  Palette,      // 2. Theme
+  BrainCircuit, // 3. Setup Overview
+  Download,     // 4. Download Progress
+  // Step 5 (Permissions) doesn't need icon - auto-skipped on non-macOS
 ];
 
 export function ProgressIndicator({ current, total, onStepClick }: ProgressIndicatorProps) {
@@ -36,8 +37,8 @@ export function ProgressIndicator({ current, total, onStepClick }: ProgressIndic
                   isCompleted
                     ? 'w-7 h-7 bg-green-600 rounded-full'
                     : isActive
-                      ? 'w-8 h-8 bg-gray-900 rounded-full'
-                      : 'w-6 h-6 bg-gray-300 rounded-full'
+                      ? 'w-8 h-8 bg-primary rounded-full'
+                      : 'w-6 h-6 bg-muted rounded-full'
                 } ${isClickable ? 'cursor-pointer hover:scale-110 hover:shadow-md' : 'cursor-default'}`}
               >
                 {isCompleted ? (
@@ -45,7 +46,7 @@ export function ProgressIndicator({ current, total, onStepClick }: ProgressIndic
                 ) : (
                   <StepIcon
                     className={`transition-all duration-300 ${
-                      isActive ? 'w-4 h-4 text-white' : 'w-3 h-3 text-gray-600'
+                      isActive ? 'w-4 h-4 text-primary-foreground' : 'w-3 h-3 text-muted-foreground'
                     }`}
                   />
                 )}
@@ -55,7 +56,7 @@ export function ProgressIndicator({ current, total, onStepClick }: ProgressIndic
               {index < visibleSteps.length - 1 && (
                 <div
                   className={`h-0.5 w-6 transition-all duration-300 ${
-                    isCompleted ? 'bg-green-600' : 'bg-gray-300'
+                    isCompleted ? 'bg-green-600' : 'bg-border'
                   }`}
                 />
               )}

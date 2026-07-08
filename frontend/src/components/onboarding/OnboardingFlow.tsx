@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import {
   WelcomeStep,
+  ThemeStep,
   PermissionsStep,
   DownloadProgressStep,
   SetupOverviewStep,
@@ -31,18 +32,20 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     checkPlatform();
   }, []);
 
-  // 4-Step Onboarding Flow (System-Recommended Models):
+  // 5-Step Onboarding Flow (System-Recommended Models):
   // Step 1: Welcome - Introduce Meetily features
-  // Step 2: Setup Overview - Database initialization + show recommended downloads
-  // Step 3: Download Progress - Download Parakeet + Summary Model (auto-selected based on platform/RAM)
-  // Step 4: Permissions - Request mic + system audio (macOS only)
+  // Step 2: Theme - Pick appearance (dark by default) and accent color
+  // Step 3: Setup Overview - Database initialization + show recommended downloads
+  // Step 4: Download Progress - Download Parakeet + Summary Model (auto-selected based on platform/RAM)
+  // Step 5: Permissions - Request mic + system audio (macOS only)
 
   return (
     <div className="onboarding-flow">
       {currentStep === 1 && <WelcomeStep />}
-      {currentStep === 2 && <SetupOverviewStep />}
-      {currentStep === 3 && <DownloadProgressStep />}
-      {currentStep === 4 && isMac && <PermissionsStep />}
+      {currentStep === 2 && <ThemeStep />}
+      {currentStep === 3 && <SetupOverviewStep />}
+      {currentStep === 4 && <DownloadProgressStep />}
+      {currentStep === 5 && isMac && <PermissionsStep />}
     </div>
   );
 }
