@@ -94,7 +94,7 @@ export function BluetoothPlaybackWarning({
           variant="ghost"
           size="icon"
           onClick={() => setIsDismissed(true)}
-          className="ml-4 h-6 w-6 text-yellow-700 dark:text-yellow-400 hover:text-yellow-900 hover:bg-yellow-100"
+          className="ml-4 h-6 w-6 text-yellow-700 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-200 hover:bg-yellow-100 dark:hover:bg-yellow-500/10"
           aria-label="Dismiss warning"
         >
           <X className="h-4 w-4" />

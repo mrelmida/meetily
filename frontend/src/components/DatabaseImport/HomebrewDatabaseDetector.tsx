@@ -138,7 +138,7 @@ export function HomebrewDatabaseDetector({ onImportSuccess, onDecline }: Homebre
             <button
               onClick={handleNo}
               disabled={isImporting}
-              className="flex-1 px-4 py-2 border-2 border-blue-400 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 disabled:bg-muted disabled:cursor-not-allowed transition-colors"
+              className="flex-1 px-4 py-2 border-2 border-blue-400 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/10 disabled:bg-muted disabled:cursor-not-allowed transition-colors"
             >
               No, Browse Manually
             </button>

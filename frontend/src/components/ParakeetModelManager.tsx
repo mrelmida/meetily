@@ -597,7 +597,7 @@ function ModelCard({
                   e.stopPropagation();
                   onCancel();
                 }}
-                className="text-xs text-muted-foreground hover:text-red-600 font-medium transition-colors px-2 py-1 rounded hover:bg-red-50"
+                className="text-xs text-muted-foreground hover:text-red-600 font-medium transition-colors px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-500/10"
                 title="Cancel download"
               >
                 Cancel

@@ -628,7 +628,7 @@ const Sidebar: React.FC = () => {
                         e.stopPropagation();
                         setDeleteModalState({ isOpen: true, itemId: item.id });
                       }}
-                      className="hover:text-red-600 p-1 rounded-md hover:bg-red-50 flex-shrink-0"
+                      className="hover:text-red-600 p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-500/10 flex-shrink-0"
                       aria-label="Delete meeting"
                     >
                       <Trash2 className="w-4 h-4" />

@@ -1225,7 +1225,7 @@ export function ModelSettingsModal({
                 {ollamaNotInstalled ? (
                   /* Show Ollama download link when not installed */
                   <div className="space-y-4">
-                    <Alert className="border-orange-500 bg-orange-50">
+                    <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950/40">
                       <AlertDescription className="text-orange-800">
                         Ollama is not installed or not running. Please download and install Ollama to use local models.
                       </AlertDescription>
