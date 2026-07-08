@@ -300,12 +300,12 @@ export function SummaryTemplateManagerDialog({
                     onClick={() => loadTemplate(template.id)}
                     className={`w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
                       activeTemplateId === template.id
-                        ? 'border-blue-300 bg-blue-50'
-                        : 'border-transparent hover:bg-gray-50'
+                        ? 'border-blue-300 bg-blue-50 dark:bg-blue-950/40'
+                        : 'border-transparent hover:bg-accent'
                     }`}
                   >
                     <span className="block truncate font-medium">{template.name}</span>
-                    <span className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                    <span className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                       <span>{sourceLabel(template.source)}</span>
                       {template.overridesBuiltin && <span>Override</span>}
                     </span>
@@ -345,7 +345,7 @@ export function SummaryTemplateManagerDialog({
 
             <div className="flex-1 p-4">
               {loading ? (
-                <div className="flex h-full items-center justify-center text-sm text-gray-500">
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Loading
                 </div>

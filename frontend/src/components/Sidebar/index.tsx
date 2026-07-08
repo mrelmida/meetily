@@ -569,7 +569,7 @@ const Sidebar: React.FC = () => {
           className={`flex items-center transition-all duration-150 group ${item.type === 'folder' && depth === 0
             ? 'p-3 text-lg font-semibold h-10 mx-3 mt-3 rounded-lg'
             : `px-3 py-2 my-0.5 rounded-md text-sm ${isActive ? 'bg-primary/10 text-primary font-medium' :
-              hasTranscriptMatch ? 'bg-amber-50 dark:bg-amber-950/40' : 'hover:bg-accent hover:text-accent-foreground'
+              hasTranscriptMatch ? 'bg-amber-50 dark:bg-amber-950/40 dark:bg-amber-950/40' : 'hover:bg-accent hover:text-accent-foreground'
             } cursor-pointer`
             }`}
           style={item.type === 'folder' && depth === 0 ? {} : { paddingLeft }}
@@ -644,7 +644,7 @@ const Sidebar: React.FC = () => {
 
               {/* Show transcript match snippet if available */}
               {hasTranscriptMatch && (
-                <div className="mt-1 ml-8 text-xs text-muted-foreground bg-amber-50 dark:bg-amber-950/40 p-1.5 rounded border border-amber-100 dark:border-amber-900/60 line-clamp-2">
+                <div className="mt-1 ml-8 text-xs text-muted-foreground bg-amber-50 dark:bg-amber-950/40 dark:bg-amber-950/40 p-1.5 rounded border border-amber-100 dark:border-amber-900/60 line-clamp-2">
                   <span className="font-medium text-amber-600 dark:text-amber-400">Match:</span> {matchingResult.matchContext}
                 </div>
               )}
@@ -689,7 +689,7 @@ const Sidebar: React.FC = () => {
           <div className="flex-1">
             {!isCollapsed && (
               <div className="p-3">
-                {/* <span className="text-lg text-center border rounded-full bg-blue-50 border-white font-semibold text-gray-700 mb-2 block items-center">
+                {/* <span className="text-lg text-center border rounded-full bg-blue-50 dark:bg-blue-950/40 border-white font-semibold text-foreground mb-2 block items-center">
                   <span>Meetily</span>
                 </span> */}
                 <Logo isCollapsed={isCollapsed} />
