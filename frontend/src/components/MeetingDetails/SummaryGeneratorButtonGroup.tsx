@@ -23,6 +23,8 @@ import { toast } from 'sonner';
 import { useState, useEffect, useRef, ReactNode } from 'react';
 import { isOllamaNotInstalledError } from '@/lib/utils';
 import { BuiltInModelInfo } from '@/lib/builtin-ai';
+import { TemplateInfo } from '@/services/templateService';
+import { SummaryTemplateManagerDialog } from './SummaryTemplateManagerDialog';
 
 interface SummaryGeneratorButtonGroupProps {
   languageSlot?: ReactNode;
@@ -33,9 +35,10 @@ interface SummaryGeneratorButtonGroupProps {
   onStopGeneration: () => void;
   customPrompt: string;
   summaryStatus: 'idle' | 'processing' | 'summarizing' | 'regenerating' | 'completed' | 'error';
-  availableTemplates: Array<{ id: string, name: string, description: string }>;
+  availableTemplates: TemplateInfo[];
   selectedTemplate: string;
   onTemplateSelect: (templateId: string, templateName: string) => void;
+  onTemplatesChanged: () => Promise<void> | void;
   hasTranscripts?: boolean;
   hasSummary?: boolean;
   isModelConfigLoading?: boolean;
@@ -53,6 +56,7 @@ export function SummaryGeneratorButtonGroup({
   availableTemplates,
   selectedTemplate,
   onTemplateSelect,
+  onTemplatesChanged,
   hasTranscripts = true,
   hasSummary = false,
   isModelConfigLoading = false,
@@ -326,34 +330,41 @@ export function SummaryGeneratorButtonGroup({
 
       {/* Template selector dropdown */}
       {availableTemplates.length > 0 && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              title="Select summary template"
-            >
-              <FileText />
-              <span className="hidden lg:inline">Template</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {availableTemplates.map((template) => (
-              <DropdownMenuItem
-                key={template.id}
-                onClick={() => onTemplateSelect(template.id, template.name)}
-                title={template.description}
-                className="flex items-center justify-between gap-2"
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                title="Select summary template"
               >
-                <span>{template.name}</span>
-                {selectedTemplate === template.id && (
-                  <Check className="h-4 w-4 text-green-600" />
-                )}
-              </DropdownMenuItem>
-            ))}
-
-          </DropdownMenuContent>
-        </DropdownMenu>
+                <FileText />
+                <span className="hidden lg:inline">Template</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {availableTemplates.map((template) => (
+                <DropdownMenuItem
+                  key={template.id}
+                  onClick={() => onTemplateSelect(template.id, template.name)}
+                  title={template.description}
+                  className="flex items-center justify-between gap-2"
+                >
+                  <span>{template.name}</span>
+                  {selectedTemplate === template.id && (
+                    <Check className="h-4 w-4 text-green-600" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <SummaryTemplateManagerDialog
+            templates={availableTemplates}
+            selectedTemplate={selectedTemplate}
+            onTemplateSelect={onTemplateSelect}
+            onTemplatesChanged={onTemplatesChanged}
+          />
+        </>
       )}
     </ButtonGroup>
   );

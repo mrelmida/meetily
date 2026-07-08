@@ -30,6 +30,27 @@ pub struct CustomOpenAIConfig {
     pub top_p: Option<f32>,
 }
 
+pub fn custom_openai_chat_completions_url(endpoint: &str) -> Result<String, String> {
+    let trimmed = endpoint.trim();
+
+    if trimmed.is_empty() {
+        return Err("Endpoint URL is required".to_string());
+    }
+
+    if !trimmed.starts_with("http://") && !trimmed.starts_with("https://") {
+        return Err("Endpoint must start with http:// or https://".to_string());
+    }
+
+    let normalized = trimmed.trim_end_matches('/');
+    let is_chat_completions_url = normalized.to_ascii_lowercase().ends_with("/chat/completions");
+
+    if is_chat_completions_url {
+        Ok(normalized.to_string())
+    } else {
+        Ok(format!("{}/chat/completions", normalized))
+    }
+}
+
 pub mod commands;
 pub(crate) mod language_detection;
 pub mod llm_client;
@@ -75,3 +96,45 @@ pub use processor::{
     generate_meeting_summary, rough_token_count,
 };
 pub use service::SummaryService;
+
+#[cfg(test)]
+mod tests {
+    use super::custom_openai_chat_completions_url;
+
+    #[test]
+    fn custom_openai_url_appends_chat_completions_to_base_url() {
+        let url = custom_openai_chat_completions_url("http://localhost:8000/v1").unwrap();
+
+        assert_eq!(url, "http://localhost:8000/v1/chat/completions");
+    }
+
+    #[test]
+    fn custom_openai_url_trims_spaces_and_trailing_slashes() {
+        let url = custom_openai_chat_completions_url("  https://api.example.com/v1///  ").unwrap();
+
+        assert_eq!(url, "https://api.example.com/v1/chat/completions");
+    }
+
+    #[test]
+    fn custom_openai_url_accepts_full_chat_completions_url() {
+        let url =
+            custom_openai_chat_completions_url("https://api.example.com/v1/chat/completions/")
+                .unwrap();
+
+        assert_eq!(url, "https://api.example.com/v1/chat/completions");
+    }
+
+    #[test]
+    fn custom_openai_url_rejects_empty_endpoint() {
+        let err = custom_openai_chat_completions_url("   ").unwrap_err();
+
+        assert_eq!(err, "Endpoint URL is required");
+    }
+
+    #[test]
+    fn custom_openai_url_rejects_non_http_endpoint() {
+        let err = custom_openai_chat_completions_url("localhost:8000/v1").unwrap_err();
+
+        assert_eq!(err, "Endpoint must start with http:// or https://");
+    }
+}

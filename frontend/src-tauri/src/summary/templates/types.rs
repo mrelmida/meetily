@@ -1,5 +1,13 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TemplateSource {
+    Builtin,
+    Bundled,
+    Custom,
+}
+
 /// Represents a single section in a meeting template
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TemplateSection {
@@ -37,11 +45,11 @@ pub struct Template {
 impl Template {
     /// Validates the template structure
     pub fn validate(&self) -> Result<(), String> {
-        if self.name.is_empty() {
+        if self.name.trim().is_empty() {
             return Err("Template name cannot be empty".to_string());
         }
 
-        if self.description.is_empty() {
+        if self.description.trim().is_empty() {
             return Err("Template description cannot be empty".to_string());
         }
 
@@ -50,11 +58,11 @@ impl Template {
         }
 
         for (i, section) in self.sections.iter().enumerate() {
-            if section.title.is_empty() {
+            if section.title.trim().is_empty() {
                 return Err(format!("Section {} has empty title", i));
             }
 
-            if section.instruction.is_empty() {
+            if section.instruction.trim().is_empty() {
                 return Err(format!("Section '{}' has empty instruction", section.title));
             }
 
@@ -94,7 +102,9 @@ impl Template {
             ));
 
             // Add item format instructions if present
-            let item_format = section.item_format.as_ref()
+            let item_format = section
+                .item_format
+                .as_ref()
                 .or(section.example_item_format.as_ref());
 
             if let Some(format) = item_format {
@@ -118,15 +128,13 @@ mod tests {
         let template = Template {
             name: "Test Template".to_string(),
             description: "A test template".to_string(),
-            sections: vec![
-                TemplateSection {
-                    title: "Summary".to_string(),
-                    instruction: "Provide a summary".to_string(),
-                    format: "paragraph".to_string(),
-                    item_format: None,
-                    example_item_format: None,
-                },
-            ],
+            sections: vec![TemplateSection {
+                title: "Summary".to_string(),
+                instruction: "Provide a summary".to_string(),
+                format: "paragraph".to_string(),
+                item_format: None,
+                example_item_format: None,
+            }],
         };
 
         assert!(template.validate().is_ok());
@@ -148,15 +156,13 @@ mod tests {
         let template = Template {
             name: "Test".to_string(),
             description: "Test".to_string(),
-            sections: vec![
-                TemplateSection {
-                    title: "Test".to_string(),
-                    instruction: "Test".to_string(),
-                    format: "invalid".to_string(),
-                    item_format: None,
-                    example_item_format: None,
-                },
-            ],
+            sections: vec![TemplateSection {
+                title: "Test".to_string(),
+                instruction: "Test".to_string(),
+                format: "invalid".to_string(),
+                item_format: None,
+                example_item_format: None,
+            }],
         };
 
         assert!(template.validate().is_err());

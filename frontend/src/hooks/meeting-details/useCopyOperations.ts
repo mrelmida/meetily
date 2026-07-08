@@ -4,6 +4,19 @@ import { BlockNoteSummaryViewRef } from '@/components/AISummary/BlockNoteSummary
 import { toast } from 'sonner';
 import Analytics from '@/lib/analytics';
 import { invoke as invokeTauri } from '@tauri-apps/api/core';
+import {
+  buildDocumentExportFilename,
+  formatFullMeetingMarkdown,
+  formatSummaryMarkdown,
+  formatTranscriptMarkdown,
+  resolveSummaryMarkdown,
+} from '@/lib/meeting-markdown-export';
+import {
+  BinaryDocumentExportFormat,
+  DocumentExportFormat,
+  generateDocxFromMarkdown,
+  generatePdfFromMarkdown,
+} from '@/lib/meeting-document-export';
 
 interface UseCopyOperationsProps {
   meeting: any;
@@ -56,6 +69,45 @@ export function useCopyOperations({
     }
   }, []);
 
+  const exportMarkdownFile = useCallback(async (
+    defaultFileName: string,
+    content: string,
+  ): Promise<string | null> => {
+    return invokeTauri('export_markdown_file', {
+      defaultFileName,
+      content,
+    }) as Promise<string | null>;
+  }, []);
+
+  const exportBinaryFile = useCallback(async (
+    defaultFileName: string,
+    content: Uint8Array,
+    extension: BinaryDocumentExportFormat,
+  ): Promise<{ path: string; bytesWritten: number } | null> => {
+    return invokeTauri('export_binary_file', {
+      defaultFileName,
+      content: Array.from(content),
+      extension,
+      filterName: extension === 'pdf' ? 'PDF' : 'Word Document',
+    }) as Promise<{ path: string; bytesWritten: number } | null>;
+  }, []);
+
+  const exportDocument = useCallback(async (
+    defaultFileName: string,
+    markdown: string,
+    format: DocumentExportFormat,
+  ): Promise<string | null> => {
+    if (format === 'markdown') {
+      return exportMarkdownFile(defaultFileName, markdown);
+    }
+
+    const bytes = format === 'pdf'
+      ? generatePdfFromMarkdown(markdown)
+      : generateDocxFromMarkdown(markdown);
+    const result = await exportBinaryFile(defaultFileName, bytes, format);
+    return result?.path || null;
+  }, [exportBinaryFile, exportMarkdownFile]);
+
   // Copy transcript to clipboard
   const handleCopyTranscript = useCallback(async () => {
     // CHANGE: Fetch ALL transcripts from database, not from pagination state
@@ -71,25 +123,7 @@ export function useCopyOperations({
 
     console.log(`✅ Copying ${allTranscripts.length} transcripts to clipboard`);
 
-    // Format timestamps as recording-relative [MM:SS] instead of wall-clock time
-    const formatTime = (seconds: number | undefined, fallbackTimestamp: string): string => {
-      if (seconds === undefined) {
-        // For old transcripts without audio_start_time, use wall-clock time
-        return fallbackTimestamp;
-      }
-      const totalSecs = Math.floor(seconds);
-      const mins = Math.floor(totalSecs / 60);
-      const secs = totalSecs % 60;
-      return `[${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}]`;
-    };
-
-    const header = `# Transcript of the Meeting: ${meeting.id} - ${meetingTitle ?? meeting.title}\n\n`;
-    const date = `## Date: ${new Date(meeting.created_at).toLocaleDateString()}\n\n`;
-    const fullTranscript = allTranscripts
-      .map(t => `${formatTime(t.audio_start_time, t.timestamp)} ${t.text}  `)
-      .join('\n');
-
-    await navigator.clipboard.writeText(header + date + fullTranscript);
+    await navigator.clipboard.writeText(formatTranscriptMarkdown(meeting, meetingTitle, allTranscripts));
     toast.success("Transcript copied to clipboard");
 
     // Track copy analytics
@@ -104,50 +138,41 @@ export function useCopyOperations({
     });
   }, [meeting, meetingTitle, fetchAllTranscripts]);
 
+  const handleExportTranscript = useCallback(async (format: DocumentExportFormat = 'markdown') => {
+    try {
+      const allTranscripts = await fetchAllTranscripts(meeting.id);
+
+      if (!allTranscripts.length) {
+        toast.error('No transcripts available to export');
+        return;
+      }
+
+      const filePath = await exportDocument(
+        buildDocumentExportFilename(meeting, meetingTitle, 'Transcript', format),
+        formatTranscriptMarkdown(meeting, meetingTitle, allTranscripts),
+        format,
+      );
+
+      if (filePath) {
+        toast.success(`Transcript exported as ${format.toUpperCase()}`);
+        await Analytics.trackFeatureUsedEnhanced('markdown_export', {
+          export_type: 'transcript',
+          export_format: format,
+          meeting_id: meeting.id,
+          transcript_length: allTranscripts.length,
+        });
+      }
+    } catch (error) {
+      console.error('❌ Failed to export transcript:', error);
+      toast.error('Failed to export transcript');
+    }
+  }, [exportDocument, fetchAllTranscripts, meeting, meetingTitle]);
+
   // Copy summary to clipboard
   const handleCopySummary = useCallback(async () => {
     try {
-      let summaryMarkdown = '';
-
       console.log('🔍 Copy Summary - Starting...');
-
-      // Try to get markdown from BlockNote editor first
-      if (blockNoteSummaryRef.current?.getMarkdown) {
-        console.log('📝 Trying to get markdown from ref...');
-        summaryMarkdown = await blockNoteSummaryRef.current.getMarkdown();
-        console.log('📝 Got markdown from ref, length:', summaryMarkdown.length);
-      }
-
-      // Fallback: Check if aiSummary has markdown property
-      if (!summaryMarkdown && aiSummary && 'markdown' in aiSummary) {
-        console.log('📝 Using markdown from aiSummary');
-        summaryMarkdown = (aiSummary as any).markdown || '';
-        console.log('📝 Markdown from aiSummary, length:', summaryMarkdown.length);
-      }
-
-      // Fallback: Check for legacy format
-      if (!summaryMarkdown && aiSummary) {
-        console.log('📝 Converting legacy format to markdown');
-        const sections = Object.entries(aiSummary)
-          .filter(([key]) => {
-            // Skip non-section keys
-            return key !== 'markdown' && key !== 'summary_json' && key !== '_section_order' && key !== 'MeetingName';
-          })
-          .map(([, section]) => {
-            if (section && typeof section === 'object' && 'title' in section && 'blocks' in section) {
-              const sectionTitle = `## ${section.title}\n\n`;
-              const sectionContent = section.blocks
-                .map((block: any) => `- ${block.content}`)
-                .join('\n');
-              return sectionTitle + sectionContent;
-            }
-            return '';
-          })
-          .filter(s => s.trim())
-          .join('\n\n');
-        summaryMarkdown = sections;
-        console.log('📝 Converted legacy format, length:', summaryMarkdown.length);
-      }
+      const summaryMarkdown = await resolveSummaryMarkdown(aiSummary, blockNoteSummaryRef);
 
       // If still no summary content, show message
       if (!summaryMarkdown.trim()) {
@@ -156,24 +181,7 @@ export function useCopyOperations({
         return;
       }
 
-      // Build metadata header
-      const header = `# Meeting Summary: ${meetingTitle}\n\n`;
-      const metadata = `**Meeting ID:** ${meeting.id}\n**Date:** ${new Date(meeting.created_at).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })}\n**Copied on:** ${new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })}\n\n---\n\n`;
-
-      const fullMarkdown = header + metadata + summaryMarkdown;
-      await navigator.clipboard.writeText(fullMarkdown);
+      await navigator.clipboard.writeText(formatSummaryMarkdown(meeting, meetingTitle, summaryMarkdown));
 
       console.log('✅ Successfully copied to clipboard!');
       toast.success("Summary copied to clipboard");
@@ -189,8 +197,73 @@ export function useCopyOperations({
     }
   }, [aiSummary, meetingTitle, meeting, blockNoteSummaryRef]);
 
+  const handleExportSummary = useCallback(async (format: DocumentExportFormat = 'markdown') => {
+    try {
+      const summaryMarkdown = await resolveSummaryMarkdown(aiSummary, blockNoteSummaryRef);
+
+      if (!summaryMarkdown.trim()) {
+        toast.error('No summary content available to export');
+        return;
+      }
+
+      const filePath = await exportDocument(
+        buildDocumentExportFilename(meeting, meetingTitle, 'Summary', format),
+        formatSummaryMarkdown(meeting, meetingTitle, summaryMarkdown, { actionLabel: 'Exported on' }),
+        format,
+      );
+
+      if (filePath) {
+        toast.success(`Summary exported as ${format.toUpperCase()}`);
+        await Analytics.trackFeatureUsedEnhanced('markdown_export', {
+          export_type: 'summary',
+          export_format: format,
+          meeting_id: meeting.id,
+        });
+      }
+    } catch (error) {
+      console.error('❌ Failed to export summary:', error);
+      toast.error('Failed to export summary');
+    }
+  }, [aiSummary, blockNoteSummaryRef, exportDocument, meeting, meetingTitle]);
+
+  const handleExportFullMeeting = useCallback(async (format: BinaryDocumentExportFormat) => {
+    try {
+      const [summaryMarkdown, allTranscripts] = await Promise.all([
+        resolveSummaryMarkdown(aiSummary, blockNoteSummaryRef),
+        fetchAllTranscripts(meeting.id),
+      ]);
+
+      if (!summaryMarkdown.trim() && !allTranscripts.length) {
+        toast.error('No meeting content available to export');
+        return;
+      }
+
+      const filePath = await exportDocument(
+        buildDocumentExportFilename(meeting, meetingTitle, 'Full', format),
+        formatFullMeetingMarkdown(meeting, meetingTitle, summaryMarkdown, allTranscripts),
+        format,
+      );
+
+      if (filePath) {
+        toast.success(`Meeting exported as ${format.toUpperCase()}`);
+        await Analytics.trackFeatureUsedEnhanced('document_export', {
+          export_type: 'full',
+          export_format: format,
+          meeting_id: meeting.id,
+          transcript_length: allTranscripts.length,
+        });
+      }
+    } catch (error) {
+      console.error('❌ Failed to export meeting:', error);
+      toast.error('Failed to export meeting');
+    }
+  }, [aiSummary, blockNoteSummaryRef, exportDocument, fetchAllTranscripts, meeting, meetingTitle]);
+
   return {
     handleCopyTranscript,
     handleCopySummary,
+    handleExportTranscript,
+    handleExportSummary,
+    handleExportFullMeeting,
   };
 }

@@ -43,10 +43,12 @@ mod types;
 
 // Re-export public API
 pub use loader::{
-    get_template, list_template_ids, list_templates, set_bundled_templates_dir,
-    validate_and_parse_template,
+    custom_template_exists, delete_custom_template, duplicate_template, export_template_json,
+    get_custom_templates_dir, get_template, get_template_record, import_custom_template,
+    list_template_ids, list_templates, normalize_template_id, serialize_template,
+    set_bundled_templates_dir, validate_and_parse_template, write_custom_template, TemplateRecord,
 };
-pub use types::{Template, TemplateSection};
+pub use types::{Template, TemplateSection, TemplateSource};
 
 #[cfg(test)]
 mod tests {
@@ -74,10 +76,10 @@ mod tests {
         let templates = list_templates();
         assert!(!templates.is_empty());
 
-        for (id, name, description) in templates {
-            assert!(!id.is_empty());
-            assert!(!name.is_empty());
-            assert!(!description.is_empty());
+        for record in templates {
+            assert!(!record.id.is_empty());
+            assert!(!record.template.name.is_empty());
+            assert!(!record.template.description.is_empty());
         }
     }
 }

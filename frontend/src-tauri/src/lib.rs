@@ -80,6 +80,13 @@ struct TranscriptionStatus {
     last_activity_ms: u64,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ExportFileResult {
+    path: String,
+    bytes_written: usize,
+}
+
 #[tauri::command]
 async fn start_recording<R: Runtime>(
     app: AppHandle<R>,
@@ -245,6 +252,155 @@ async fn save_transcript(file_path: String, content: String) -> Result<(), Strin
 
     log_info!("Transcript saved successfully");
     Ok(())
+}
+
+#[tauri::command]
+async fn export_markdown_file<R: Runtime>(
+    app: AppHandle<R>,
+    default_file_name: String,
+    content: String,
+) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let mut safe_default_name = default_file_name.trim().to_string();
+    if safe_default_name.is_empty() {
+        safe_default_name = "meeting-export.md".to_string();
+    }
+
+    if !safe_default_name.to_ascii_lowercase().ends_with(".md") {
+        safe_default_name.push_str(".md");
+    }
+
+    let dialog_app = app.clone();
+    let selected_path = tokio::task::spawn_blocking(move || {
+        dialog_app
+            .dialog()
+            .file()
+            .add_filter("Markdown", &["md", "markdown"])
+            .set_file_name(safe_default_name)
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| format!("Markdown export dialog failed: {}", e))?;
+
+    let Some(selected_path) = selected_path else {
+        return Ok(None);
+    };
+
+    let mut path = selected_path
+        .into_path()
+        .map_err(|e| format!("Invalid Markdown export path: {}", e))?;
+
+    let has_markdown_extension = path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .map(|extension| {
+            extension.eq_ignore_ascii_case("md") || extension.eq_ignore_ascii_case("markdown")
+        })
+        .unwrap_or(false);
+
+    if !has_markdown_extension {
+        path.set_extension("md");
+    }
+
+    if let Some(parent) = path.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|e| format!("Failed to create Markdown export directory: {}", e))?;
+    }
+
+    tokio::fs::write(&path, content)
+        .await
+        .map_err(|e| format!("Failed to write Markdown export: {}", e))?;
+
+    Ok(Some(path.to_string_lossy().to_string()))
+}
+
+#[tauri::command]
+async fn export_binary_file<R: Runtime>(
+    app: AppHandle<R>,
+    default_file_name: String,
+    content: Vec<u8>,
+    extension: String,
+    filter_name: Option<String>,
+) -> Result<Option<ExportFileResult>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let normalized_extension = extension
+        .trim()
+        .trim_start_matches('.')
+        .to_ascii_lowercase();
+
+    if normalized_extension.is_empty()
+        || !normalized_extension
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric())
+    {
+        return Err("Export extension must be alphanumeric".to_string());
+    }
+
+    let mut safe_default_name = default_file_name.trim().to_string();
+    if safe_default_name.is_empty() {
+        safe_default_name = format!("meeting-export.{}", normalized_extension);
+    }
+
+    let expected_suffix = format!(".{}", normalized_extension);
+    if !safe_default_name
+        .to_ascii_lowercase()
+        .ends_with(&expected_suffix)
+    {
+        safe_default_name.push_str(&expected_suffix);
+    }
+
+    let dialog_extension = normalized_extension.clone();
+    let dialog_filter_name =
+        filter_name.unwrap_or_else(|| normalized_extension.to_ascii_uppercase());
+    let dialog_app = app.clone();
+    let selected_path = tokio::task::spawn_blocking(move || {
+        let extensions = [dialog_extension.as_str()];
+        dialog_app
+            .dialog()
+            .file()
+            .add_filter(&dialog_filter_name, &extensions)
+            .set_file_name(safe_default_name)
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| format!("Export dialog failed: {}", e))?;
+
+    let Some(selected_path) = selected_path else {
+        return Ok(None);
+    };
+
+    let mut path = selected_path
+        .into_path()
+        .map_err(|e| format!("Invalid export path: {}", e))?;
+
+    let has_expected_extension = path
+        .extension()
+        .and_then(|path_extension| path_extension.to_str())
+        .map(|path_extension| path_extension.eq_ignore_ascii_case(&normalized_extension))
+        .unwrap_or(false);
+
+    if !has_expected_extension {
+        path.set_extension(&normalized_extension);
+    }
+
+    if let Some(parent) = path.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|e| format!("Failed to create export directory: {}", e))?;
+    }
+
+    let bytes_written = content.len();
+    tokio::fs::write(&path, content)
+        .await
+        .map_err(|e| format!("Failed to write export: {}", e))?;
+
+    Ok(Some(ExportFileResult {
+        path: path.to_string_lossy().to_string(),
+        bytes_written,
+    }))
 }
 
 // Audio level monitoring commands
@@ -530,6 +686,8 @@ pub fn run() {
             get_transcription_status,
             read_audio_file,
             save_transcript,
+            export_markdown_file,
+            export_binary_file,
             analytics::commands::init_analytics,
             analytics::commands::disable_analytics,
             analytics::commands::track_event,
@@ -671,6 +829,12 @@ pub fn run() {
             summary::template_commands::api_list_templates,
             summary::template_commands::api_get_template_details,
             summary::template_commands::api_validate_template,
+            summary::template_commands::api_create_custom_template,
+            summary::template_commands::api_update_custom_template,
+            summary::template_commands::api_delete_custom_template,
+            summary::template_commands::api_duplicate_template,
+            summary::template_commands::api_export_template,
+            summary::template_commands::api_import_template,
             // Built-in AI commands
             summary::summary_engine::commands::builtin_ai_list_models,
             summary::summary_engine::commands::builtin_ai_get_model_info,

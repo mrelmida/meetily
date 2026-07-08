@@ -5,6 +5,8 @@ use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
 
+use super::custom_openai_chat_completions_url;
+
 const REQUEST_TIMEOUT_DURATION: Duration = Duration::from_secs(300);
 
 // Generic structure for OpenAI-compatible API chat messages
@@ -174,7 +176,7 @@ pub async fn generate_summary(
             let endpoint = custom_openai_endpoint
                 .ok_or_else(|| "Custom OpenAI endpoint not configured".to_string())?;
             (
-                format!("{}/chat/completions", endpoint.trim_end_matches('/')),
+                custom_openai_chat_completions_url(endpoint)?,
                 header::HeaderMap::new(),
             )
         }
@@ -200,8 +202,14 @@ pub async fn generate_summary(
         }
     };
 
-    // Add authorization header for non-Claude providers
-    if provider != &LLMProvider::Claude {
+    // Custom OpenAI-compatible servers can be local/keyless; only attach auth when provided.
+    let should_add_bearer_auth = match provider {
+        LLMProvider::Claude | LLMProvider::BuiltInAI => false,
+        LLMProvider::CustomOpenAI => !api_key.trim().is_empty(),
+        _ => true,
+    };
+
+    if should_add_bearer_auth {
         headers.insert(
             header::AUTHORIZATION,
             format!("Bearer {}", api_key)

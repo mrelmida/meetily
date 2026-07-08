@@ -13,7 +13,7 @@ use crate::{
         },
     },
     state::AppState,
-    summary::CustomOpenAIConfig,
+    summary::{custom_openai_chat_completions_url, CustomOpenAIConfig},
 };
 
 // Hardcoded server URL
@@ -1193,10 +1193,7 @@ pub async fn api_save_custom_openai_config<R: Runtime>(
         return Err("Model name is required".to_string());
     }
 
-    // Validate endpoint URL format
-    if !endpoint.starts_with("http://") && !endpoint.starts_with("https://") {
-        return Err("Endpoint must start with http:// or https://".to_string());
-    }
+    custom_openai_chat_completions_url(&endpoint)?;
 
     // Validate optional numeric parameters
     if let Some(temp) = temperature {
@@ -1283,13 +1280,7 @@ pub async fn api_test_custom_openai_connection<R: Runtime>(
         &model
     );
 
-    // Validate endpoint URL format
-    if !endpoint.starts_with("http://") && !endpoint.starts_with("https://") {
-        return Err("Endpoint must start with http:// or https://".to_string());
-    }
-
-    // Build the URL - append /chat/completions to the base endpoint
-    let url = format!("{}/chat/completions", endpoint.trim_end_matches('/'));
+    let url = custom_openai_chat_completions_url(&endpoint)?;
 
     // Create a minimal test request
     let test_request = serde_json::json!({
