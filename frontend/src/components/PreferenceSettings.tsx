@@ -4,8 +4,6 @@ import { useEffect, useState, useRef } from "react"
 import { Switch } from "./ui/switch"
 import { FolderOpen } from "lucide-react"
 import { invoke } from "@tauri-apps/api/core"
-import Analytics from "@/lib/analytics"
-import AnalyticsConsentSwitch from "./AnalyticsConsentSwitch"
 import { useConfig, NotificationSettings } from "@/contexts/ConfigContext"
 import { ThemeSettings } from "./ThemeSettings"
 
@@ -30,22 +28,15 @@ export function PreferenceSettings() {
     hasTrackedViewRef.current = false;
   }, [loadPreferences]);
 
-  // Track preferences viewed analytics on every tab visit (once per mount)
   useEffect(() => {
     if (hasTrackedViewRef.current) return;
 
     const trackPreferencesViewed = async () => {
       // Wait for notification settings to be available (either from cache or after loading)
       if (notificationSettings) {
-        await Analytics.track('preferences_viewed', {
-          notifications_enabled: notificationSettings.notification_preferences.show_recording_started ? 'true' : 'false'
-        });
         hasTrackedViewRef.current = true;
       } else if (!isLoadingPreferences) {
         // If not loading and no settings available, track with default value
-        await Analytics.track('preferences_viewed', {
-          notifications_enabled: 'false'
-        });
         hasTrackedViewRef.current = true;
       }
     };
@@ -100,9 +91,6 @@ export function PreferenceSettings() {
         console.log("Successfully updated notification settings to:", notificationsEnabled);
 
         // Track notification preference change - only fires when user manually toggles
-        await Analytics.track('notification_settings_changed', {
-          notifications_enabled: notificationsEnabled.toString()
-        });
       } catch (error) {
         console.error('Failed to update notification settings:', error);
       }
@@ -126,9 +114,6 @@ export function PreferenceSettings() {
       }
 
       // Track storage folder access
-      await Analytics.track('storage_folder_opened', {
-        folder_type: folderType
-      });
     } catch (error) {
       console.error(`Failed to open ${folderType} folder:`, error);
     }
@@ -223,10 +208,6 @@ export function PreferenceSettings() {
         </div>
       </div>
 
-      {/* Analytics Section */}
-      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-        <AnalyticsConsentSwitch />
-      </div>
     </div>
   )
 }

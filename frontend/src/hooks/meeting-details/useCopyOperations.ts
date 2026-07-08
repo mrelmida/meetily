@@ -2,7 +2,6 @@ import { useCallback, RefObject } from 'react';
 import { Transcript, Summary } from '@/types';
 import { BlockNoteSummaryViewRef } from '@/components/AISummary/BlockNoteSummaryView';
 import { toast } from 'sonner';
-import Analytics from '@/lib/analytics';
 import { invoke as invokeTauri } from '@tauri-apps/api/core';
 import {
   buildDocumentExportFilename,
@@ -126,16 +125,10 @@ export function useCopyOperations({
     await navigator.clipboard.writeText(formatTranscriptMarkdown(meeting, meetingTitle, allTranscripts));
     toast.success("Transcript copied to clipboard");
 
-    // Track copy analytics
     const wordCount = allTranscripts
       .map(t => t.text.split(/\s+/).length)
       .reduce((a, b) => a + b, 0);
 
-    await Analytics.trackCopy('transcript', {
-      meeting_id: meeting.id,
-      transcript_length: allTranscripts.length.toString(),
-      word_count: wordCount.toString()
-    });
   }, [meeting, meetingTitle, fetchAllTranscripts]);
 
   const handleExportTranscript = useCallback(async (format: DocumentExportFormat = 'markdown') => {
@@ -155,12 +148,6 @@ export function useCopyOperations({
 
       if (filePath) {
         toast.success(`Transcript exported as ${format.toUpperCase()}`);
-        await Analytics.trackFeatureUsedEnhanced('markdown_export', {
-          export_type: 'transcript',
-          export_format: format,
-          meeting_id: meeting.id,
-          transcript_length: allTranscripts.length,
-        });
       }
     } catch (error) {
       console.error('❌ Failed to export transcript:', error);
@@ -186,11 +173,6 @@ export function useCopyOperations({
       console.log('✅ Successfully copied to clipboard!');
       toast.success("Summary copied to clipboard");
 
-      // Track copy analytics
-      await Analytics.trackCopy('summary', {
-        meeting_id: meeting.id,
-        has_markdown: (!!aiSummary && 'markdown' in aiSummary).toString()
-      });
     } catch (error) {
       console.error('❌ Failed to copy summary:', error);
       toast.error("Failed to copy summary");
@@ -214,11 +196,6 @@ export function useCopyOperations({
 
       if (filePath) {
         toast.success(`Summary exported as ${format.toUpperCase()}`);
-        await Analytics.trackFeatureUsedEnhanced('markdown_export', {
-          export_type: 'summary',
-          export_format: format,
-          meeting_id: meeting.id,
-        });
       }
     } catch (error) {
       console.error('❌ Failed to export summary:', error);
@@ -246,12 +223,6 @@ export function useCopyOperations({
 
       if (filePath) {
         toast.success(`Meeting exported as ${format.toUpperCase()}`);
-        await Analytics.trackFeatureUsedEnhanced('document_export', {
-          export_type: 'full',
-          export_format: format,
-          meeting_id: meeting.id,
-          transcript_length: allTranscripts.length,
-        });
       }
     } catch (error) {
       console.error('❌ Failed to export meeting:', error);

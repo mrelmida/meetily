@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import Analytics from '@/lib/analytics';
 import { TemplateInfo, templateService } from '@/services/templateService';
 
 export function useTemplates() {
@@ -44,7 +43,6 @@ export function useTemplates() {
     toast.success('Template selected', {
       description: `Using "${templateName}" template for summary generation`,
     });
-    Analytics.trackFeatureUsed('template_selected');
   }, []);
 
   return {
