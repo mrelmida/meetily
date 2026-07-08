@@ -26,6 +26,7 @@ import { ImportAudioDialog, ImportDropOverlay } from '@/components/ImportAudio'
 import { ImportDialogProvider } from '@/contexts/ImportDialogContext'
 import { isAudioExtension, getAudioFormatsDisplayList } from '@/constants/audioFormats'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
+import { TitleBar } from '@/components/TitleBar'
 
 
 const sourceSans3 = Source_Sans_3({
@@ -255,11 +256,14 @@ export default function RootLayout({
                                 {/* Download progress toast provider - listens for background downloads */}
                                 <DownloadProgressToastProvider />
 
+                                {/* Custom window title bar (window is undecorated) */}
+                                <TitleBar />
+
                                 {/* Show onboarding or main app */}
                                 {showOnboarding ? (
                                   <OnboardingFlow onComplete={handleOnboardingComplete} />
                                 ) : (
-                                  <div className="flex">
+                                  <div className="flex pt-10">
                                     <Sidebar />
                                     <MainContent>{children}</MainContent>
                                   </div>
