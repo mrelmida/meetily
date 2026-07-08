@@ -258,9 +258,9 @@ export function SummaryPanel({
   );
 
   return (
-    <div className="flex-1 min-w-0 flex flex-col bg-white overflow-hidden">
+    <div className="flex-1 min-w-0 flex flex-col bg-background text-foreground overflow-hidden">
       {/* Title area */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-border">
         {/* <EditableTitle
           title={meetingTitle}
           isEditing={isEditingTitle}
@@ -339,7 +339,7 @@ export function SummaryPanel({
           <div className="flex items-center justify-center flex-1">
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-              <p className="text-gray-600">Generating AI Summary...</p>
+              <p className="text-muted-foreground">Generating AI Summary...</p>
             </div>
           </div>
         </div>
@@ -376,10 +376,10 @@ export function SummaryPanel({
       ) : transcripts?.length > 0 && (
         <div className="flex-1 overflow-y-auto min-h-0">
           {summaryResponse && (
-            <div className="fixed bottom-0 left-0 right-0 bg-white shadow-lg p-4 max-h-1/3 overflow-y-auto">
+            <div className="fixed bottom-0 left-0 right-0 bg-card text-card-foreground shadow-lg p-4 max-h-1/3 overflow-y-auto border-t border-border">
               <h3 className="text-lg font-semibold mb-2">Meeting Summary</h3>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white p-4 rounded-lg shadow-sm">
+                <div className="bg-background p-4 rounded-lg shadow-sm border border-border">
                   <h4 className="font-medium mb-1">Key Points</h4>
                   <ul className="list-disc pl-4">
                     {summaryResponse.summary.key_points.blocks.map((block, i) => (
@@ -387,7 +387,7 @@ export function SummaryPanel({
                     ))}
                   </ul>
                 </div>
-                <div className="bg-white p-4 rounded-lg shadow-sm mt-4">
+                <div className="bg-background p-4 rounded-lg shadow-sm mt-4 border border-border">
                   <h4 className="font-medium mb-1">Action Items</h4>
                   <ul className="list-disc pl-4">
                     {summaryResponse.summary.action_items.blocks.map((block, i) => (
@@ -395,7 +395,7 @@ export function SummaryPanel({
                     ))}
                   </ul>
                 </div>
-                <div className="bg-white p-4 rounded-lg shadow-sm mt-4">
+                <div className="bg-background p-4 rounded-lg shadow-sm mt-4 border border-border">
                   <h4 className="font-medium mb-1">Decisions</h4>
                   <ul className="list-disc pl-4">
                     {summaryResponse.summary.decisions.blocks.map((block, i) => (
@@ -403,7 +403,7 @@ export function SummaryPanel({
                     ))}
                   </ul>
                 </div>
-                <div className="bg-white p-4 rounded-lg shadow-sm mt-4">
+                <div className="bg-background p-4 rounded-lg shadow-sm mt-4 border border-border">
                   <h4 className="font-medium mb-1">Main Topics</h4>
                   <ul className="list-disc pl-4">
                     {summaryResponse.summary.main_topics.blocks.map((block, i) => (
